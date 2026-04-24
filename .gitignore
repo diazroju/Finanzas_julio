@@ -1,0 +1,7 @@
+config.py
+finanzas.db
+venv/
+__pycache__/
+*.pyc
+.streamlit/
+log.txt
