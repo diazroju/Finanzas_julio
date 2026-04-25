@@ -24,7 +24,7 @@ def meses():
 st.sidebar.title("💰 Finanzas Julio")
 mes_lista = meses()
 mes_sel   = st.sidebar.selectbox("Mes", mes_lista)
-pagina    = st.sidebar.radio("Sección", ["📊 Resumen", "🏠 Gastos Casa", "➕ Agregar"])
+pagina    = st.sidebar.radio("Sección", ["📊 Resumen", "📈 Comparación", "🏠 Gastos Casa", "➕ Agregar"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
 if pagina == "📊 Resumen":
@@ -77,6 +77,69 @@ if pagina == "📊 Resumen":
         col1, col2 = st.columns(2)
         col1.metric("Ingresos", fmt(ingresos))
         col2.metric("Gastos",   fmt(gastos_personal))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+elif pagina == "📈 Comparación":
+# ═══════════════════════════════════════════════════════════════════════════════
+    st.title("📈 Comparación por mes")
+
+    df_todo = get_df("SELECT mes, nombre, monto_total FROM gastos_casa WHERE activo=1 ORDER BY mes")
+
+    if df_todo.empty or df_todo["mes"].nunique() < 2:
+        st.info("Necesitas al menos 2 meses de datos para ver comparaciones. Agrega los gastos del mes siguiente en '🏠 Gastos Casa'.")
+        st.stop()
+
+    # Gráfica total por mes
+    total_mes = df_todo.groupby("mes")["monto_total"].sum().reset_index()
+    total_mes.columns = ["Mes", "Total"]
+    total_mes["Variación"] = total_mes["Total"].diff().fillna(0)
+    total_mes["Color"] = total_mes["Variación"].apply(lambda x: "Subió" if x > 0 else ("Bajó" if x < 0 else "Igual"))
+
+    st.subheader("Total gastos por mes")
+    fig1 = px.bar(total_mes, x="Mes", y="Total", color="Color",
+                  color_discrete_map={"Subió": "#e74c3c", "Bajó": "#2ecc71", "Igual": "#95a5a6"},
+                  text_auto=False)
+    fig1.update_traces(texttemplate="$%{y:,.0f}", textposition="outside")
+    fig1.update_layout(showlegend=True, margin=dict(t=20, b=0))
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # Tabla de variación
+    if len(total_mes) >= 2:
+        ultimo  = total_mes.iloc[-1]
+        penult  = total_mes.iloc[-2]
+        delta   = ultimo["Total"] - penult["Total"]
+        st.metric(
+            label=f"Cambio vs {penult['Mes']}",
+            value=fmt(ultimo["Total"]),
+            delta=f"{'+'if delta>0 else ''}{fmt(delta)}",
+            delta_color="inverse"
+        )
+
+    st.divider()
+
+    # Comparación por categoría entre los últimos 2 meses
+    st.subheader("Por categoría — últimos 2 meses")
+    meses_disp = sorted(df_todo["mes"].unique())
+    if len(meses_disp) >= 2:
+        m1, m2 = meses_disp[-2], meses_disp[-1]
+        df_m1 = df_todo[df_todo["mes"] == m1].set_index("nombre")["monto_total"]
+        df_m2 = df_todo[df_todo["mes"] == m2].set_index("nombre")["monto_total"]
+        comp  = pd.DataFrame({"Anterior": df_m1, "Actual": df_m2}).fillna(0).reset_index()
+        comp.columns = ["Concepto", m1, m2]
+        comp["Δ"] = comp[m2] - comp[m1]
+        comp["Cambio"] = comp["Δ"].apply(lambda x: f"+{fmt(x)}" if x > 0 else fmt(x))
+
+        fig2 = px.bar(comp.melt(id_vars="Concepto", value_vars=[m1, m2], var_name="Mes", value_name="Monto"),
+                      x="Concepto", y="Monto", color="Mes", barmode="group",
+                      color_discrete_sequence=["#95a5a6", "#3498db"])
+        fig2.update_layout(margin=dict(t=20, b=0), xaxis_tickangle=-45)
+        st.plotly_chart(fig2, use_container_width=True)
+
+        st.subheader("Detalle de cambios")
+        tabla = comp[["Concepto", m1, m2, "Cambio"]].copy()
+        tabla[m1] = tabla[m1].apply(fmt)
+        tabla[m2] = tabla[m2].apply(fmt)
+        st.dataframe(tabla, hide_index=True, use_container_width=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 elif pagina == "🏠 Gastos Casa":
