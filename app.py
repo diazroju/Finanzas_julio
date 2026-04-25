@@ -163,28 +163,29 @@ elif pagina == "🏠 Gastos Casa":
             titulo = {"fijo": "📌 Gastos Fijos", "variable": "📊 Gastos Variables", "ahorro": "💾 Ahorros"}
             st.subheader(titulo[tipo])
 
-            col_cfg = {
-                "Total": st.column_config.NumberColumn("Total ($)", format="$,.0f"),
-                "Julio": st.column_config.NumberColumn("Julio ($)", format="$,.0f"),
-                "Paula": st.column_config.NumberColumn("Paula ($)", format="$,.0f"),
-            }
-            edited = st.data_editor(
-                sub[["id","nombre","monto_total","aporte_julio","aporte_paula"]].rename(columns={
-                    "nombre":"Concepto","monto_total":"Total","aporte_julio":"Julio","aporte_paula":"Paula"
-                }),
-                hide_index=True, use_container_width=True, disabled=["id"],
-                column_config=col_cfg,
-                key=f"ed_{tipo}_{mes_sel}"
-            )
+            disp = sub[["nombre","monto_total","aporte_julio","aporte_paula"]].copy()
+            disp.columns = ["Concepto","Total","Julio","Paula"]
+            disp["Total"] = disp["Total"].apply(fmt)
+            disp["Julio"] = disp["Julio"].apply(fmt)
+            disp["Paula"] = disp["Paula"].apply(fmt)
+            st.dataframe(disp, hide_index=True, use_container_width=True)
 
-            if st.button(f"💾 Guardar {tipo}s", key=f"sv_{tipo}"):
-                for _, r in edited.iterrows():
-                    database.ejecutar(
-                        "UPDATE gastos_casa SET nombre=%s, monto_total=%s, aporte_julio=%s, aporte_paula=%s WHERE id=%s",
-                        (r["Concepto"], r["Total"], r["Julio"], r["Paula"], r["id"])
-                    )
-                st.success("Guardado.")
-                st.rerun()
+            with st.expander("✏️ Editar valores"):
+                edited = st.data_editor(
+                    sub[["id","nombre","monto_total","aporte_julio","aporte_paula"]].rename(columns={
+                        "nombre":"Concepto","monto_total":"Total","aporte_julio":"Julio","aporte_paula":"Paula"
+                    }),
+                    hide_index=True, use_container_width=True, disabled=["id"],
+                    key=f"ed_{tipo}_{mes_sel}"
+                )
+                if st.button(f"💾 Guardar {tipo}s", key=f"sv_{tipo}"):
+                    for _, r in edited.iterrows():
+                        database.ejecutar(
+                            "UPDATE gastos_casa SET nombre=%s, monto_total=%s, aporte_julio=%s, aporte_paula=%s WHERE id=%s",
+                            (r["Concepto"], r["Total"], r["Julio"], r["Paula"], r["id"])
+                        )
+                    st.success("Guardado.")
+                    st.rerun()
 
             j = sub["aporte_julio"].sum()
             p = sub["aporte_paula"].sum()
