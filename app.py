@@ -143,7 +143,7 @@ elif pagina == "Comparación":
 
     st.subheader("Total gastos por mes")
     fig1 = px.bar(total_mes, x="Mes", y="Total", color="Color",
-                  color_discrete_map={"Subió": "#64748b", "Bajó": "#1e3a5f", "Igual": "#cbd5e1"},
+                  color_discrete_map={"Subió": "#6366f1", "Bajó": "#1e3a5f", "Igual": "#cbd5e1"},
                   text_auto=False)
     fig1.update_traces(texttemplate="$%{y:,.0f}", textposition="outside", textfont=dict(color="#1e293b"))
     fig1.update_layout(showlegend=True, margin=dict(t=20, b=0),
@@ -179,7 +179,7 @@ elif pagina == "Comparación":
 
         fig2 = px.bar(comp.melt(id_vars="Concepto", value_vars=[m1, m2], var_name="Mes", value_name="Monto"),
                       x="Concepto", y="Monto", color="Mes", barmode="group",
-                      color_discrete_sequence=["#94a3b8", "#1e3a5f"])
+                      color_discrete_sequence=["#cbd5e1", "#6366f1"])
         fig2.update_layout(margin=dict(t=20, b=0), xaxis_tickangle=-45,
                            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                            yaxis=dict(showgrid=True, gridcolor="#f1f5f9"))
