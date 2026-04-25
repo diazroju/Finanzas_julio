@@ -109,7 +109,7 @@ if pagina == "Resumen":
         tipo_df["Pct"] = (tipo_df["Total"] / tipo_df["Total"].sum() * 100).round(1)
         tipo_df["Label"] = tipo_df.apply(lambda r: f"${r['Total']:,.0f}<br>{r['Pct']}%".replace(",", "."), axis=1)
         fig2 = px.bar(tipo_df, x="Tipo", y="Total", color="Tipo",
-                      color_discrete_sequence=["#1e3a5f", "#475569", "#94a3b8"],
+                      color_discrete_sequence=["#1e3a5f", "#6366f1", "#cbd5e1"],
                       text="Label")
         fig2.update_traces(textposition="outside", textfont=dict(color="#1e293b"))
         fig2.update_layout(showlegend=False, margin=dict(t=40, b=0),
