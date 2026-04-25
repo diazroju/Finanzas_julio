@@ -16,6 +16,16 @@ def get_df(sql, params=()):
     rows, cols = database.consultar(sql, params)
     return pd.DataFrame(rows, columns=cols)
 
+MESES_ES = {
+    "01":"Enero","02":"Febrero","03":"Marzo","04":"Abril",
+    "05":"Mayo","06":"Junio","07":"Julio","08":"Agosto",
+    "09":"Septiembre","10":"Octubre","11":"Noviembre","12":"Diciembre"
+}
+
+def fmt_mes(m):
+    partes = m.split("-")
+    return f"{MESES_ES.get(partes[1], partes[1])}-{partes[0]}"
+
 def meses():
     rows, _ = database.consultar("SELECT DISTINCT mes FROM gastos_casa ORDER BY mes DESC")
     return [r[0] for r in rows] or [date.today().strftime("%Y-%m")]
@@ -23,7 +33,7 @@ def meses():
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 st.sidebar.title("💰 Finanzas Julio")
 mes_lista = meses()
-mes_sel   = st.sidebar.selectbox("Mes", mes_lista)
+mes_sel   = st.sidebar.selectbox("Mes", mes_lista, format_func=fmt_mes)
 pagina    = st.sidebar.radio("Sección", ["📊 Resumen", "📈 Comparación", "🏠 Gastos Casa", "➕ Agregar"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
