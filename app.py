@@ -198,21 +198,38 @@ elif pagina == "🏠 Gastos Casa":
         st.markdown(f"**TOTAL MES: {fmt(total)}** | Julio: {fmt(j_tot)} ({round(j_tot/total*100)}%) | Paula: {fmt(p_tot)} ({round(p_tot/total*100)}%)")
 
     st.divider()
+
+    # ── DISTRIBUIR APORTES ────────────────────────────────────────────────────
+    st.subheader("⚖️ Distribuir aportes del mes")
+    julio_pct = st.slider("% Julio", min_value=0, max_value=100, value=50, step=1)
+    paula_pct = 100 - julio_pct
+    col_a, col_b = st.columns(2)
+    col_a.metric("Julio", f"{julio_pct}%")
+    col_b.metric("Paula", f"{paula_pct}%")
+    if st.button("Aplicar porcentaje a todos los gastos del mes"):
+        rows, _ = database.consultar("SELECT id, monto_total FROM gastos_casa WHERE mes=%s AND activo=1", (mes_sel,))
+        for rid, monto_t in rows:
+            j = round(monto_t * julio_pct / 100)
+            p = monto_t - j
+            database.ejecutar("UPDATE gastos_casa SET aporte_julio=%s, aporte_paula=%s WHERE id=%s", (j, p, rid))
+        st.success(f"Aportes actualizados: Julio {julio_pct}% / Paula {paula_pct}%")
+        st.rerun()
+
+    st.divider()
     st.subheader("➕ Agregar gasto")
     with st.form("nuevo"):
         col1, col2 = st.columns(2)
         nombre  = col1.text_input("Concepto")
         tipo_g  = col2.selectbox("Tipo", ["fijo","variable","ahorro"])
         total_g = st.number_input("Monto total ($)", min_value=0, step=10000)
-        col3, col4 = st.columns(2)
-        julio_g = col3.number_input("Aporte Julio", min_value=0, step=10000, value=int(total_g//2))
-        paula_g = col4.number_input("Aporte Paula", min_value=0, step=10000, value=int(total_g//2))
         if st.form_submit_button("Agregar") and nombre:
+            j_g = round(total_g * julio_pct / 100)
+            p_g = total_g - j_g
             database.ejecutar(
                 "INSERT INTO gastos_casa (mes,nombre,tipo,monto_total,aporte_julio,aporte_paula) VALUES (%s,%s,%s,%s,%s,%s)",
-                (mes_sel, nombre, tipo_g, total_g, julio_g, paula_g)
+                (mes_sel, nombre, tipo_g, total_g, j_g, p_g)
             )
-            st.success(f"'{nombre}' agregado.")
+            st.success(f"'{nombre}' agregado ({julio_pct}% Julio / {paula_pct}% Paula).")
             st.rerun()
 
     if not df.empty:
