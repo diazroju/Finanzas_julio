@@ -163,11 +163,17 @@ elif pagina == "🏠 Gastos Casa":
             titulo = {"fijo": "📌 Gastos Fijos", "variable": "📊 Gastos Variables", "ahorro": "💾 Ahorros"}
             st.subheader(titulo[tipo])
 
+            col_cfg = {
+                "Total": st.column_config.NumberColumn("Total ($)", format="$ %d"),
+                "Julio": st.column_config.NumberColumn("Julio ($)", format="$ %d"),
+                "Paula": st.column_config.NumberColumn("Paula ($)", format="$ %d"),
+            }
             edited = st.data_editor(
                 sub[["id","nombre","monto_total","aporte_julio","aporte_paula"]].rename(columns={
                     "nombre":"Concepto","monto_total":"Total","aporte_julio":"Julio","aporte_paula":"Paula"
                 }),
                 hide_index=True, use_container_width=True, disabled=["id"],
+                column_config=col_cfg,
                 key=f"ed_{tipo}_{mes_sel}"
             )
 
