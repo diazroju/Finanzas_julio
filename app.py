@@ -94,7 +94,7 @@ if pagina == "Resumen":
         labels=["Julio", "Paula"],
         values=[julio_casa, paula_casa],
         hole=0.5,
-        marker_colors=["#1e3a5f", "#94a3b8"],
+        marker_colors=["#94a3b8", "#6366f1"],
         textfont=dict(color="white")
     ))
     fig.update_layout(title="Distribución de aportes", height=280, margin=dict(t=40,b=0,l=0,r=0),
