@@ -164,9 +164,9 @@ elif pagina == "🏠 Gastos Casa":
             st.subheader(titulo[tipo])
 
             col_cfg = {
-                "Total": st.column_config.NumberColumn("Total ($)", format="$ %d"),
-                "Julio": st.column_config.NumberColumn("Julio ($)", format="$ %d"),
-                "Paula": st.column_config.NumberColumn("Paula ($)", format="$ %d"),
+                "Total": st.column_config.NumberColumn("Total ($)", format="$ %'d"),
+                "Julio": st.column_config.NumberColumn("Julio ($)", format="$ %'d"),
+                "Paula": st.column_config.NumberColumn("Paula ($)", format="$ %'d"),
             }
             edited = st.data_editor(
                 sub[["id","nombre","monto_total","aporte_julio","aporte_paula"]].rename(columns={
