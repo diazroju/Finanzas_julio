@@ -5,7 +5,30 @@ import plotly.graph_objects as go
 from datetime import date
 import database
 
-st.set_page_config(page_title="Finanzas Julio", page_icon="💰", layout="centered")
+st.set_page_config(page_title="Finanzas Julio", page_icon="💎", layout="centered")
+
+st.markdown("""
+<style>
+/* Sidebar limpia */
+[data-testid="stSidebar"] { background: #f8fafc; border-right: 1px solid #e2e8f0; }
+/* Métricas con tarjeta */
+[data-testid="stMetric"] {
+    background: #f8fafc; border-radius: 12px;
+    padding: 16px 20px; border: 1px solid #e2e8f0;
+}
+/* Títulos más limpios */
+h1 { font-weight: 700; letter-spacing: -0.5px; }
+h2 { font-weight: 600; color: #475569; font-size: 1.1rem !important; text-transform: uppercase; letter-spacing: 0.5px; }
+/* Tablas */
+[data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+/* Botones */
+.stButton > button { border-radius: 8px; font-weight: 500; }
+/* Expander */
+[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 10px; }
+/* Divider más sutil */
+hr { border-color: #f1f5f9 !important; }
+</style>
+""", unsafe_allow_html=True)
 
 def fmt(n):
     if not n:
@@ -37,15 +60,15 @@ def meses():
     return [r[0] for r in rows] or [date.today().strftime("%Y-%m")]
 
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
-st.sidebar.title("💰 Finanzas Julio")
+st.sidebar.title("💎 Finanzas Julio")
 mes_lista = meses()
 mes_sel   = st.sidebar.selectbox("Mes", mes_lista, format_func=fmt_mes)
-pagina    = st.sidebar.radio("Sección", ["📊 Resumen", "📈 Comparación", "🏠 Gastos Casa", "➕ Agregar"])
+pagina    = st.sidebar.radio("Vista", ["Resumen", "Comparación", "Casa Madrigal", "Registrar"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
-if pagina == "📊 Resumen":
+if pagina == "Resumen":
 # ═══════════════════════════════════════════════════════════════════════════════
-    st.title("📊 Resumen del mes")
+    st.title("Resumen del mes")
 
     df_casa = get_df("SELECT * FROM gastos_casa WHERE mes=%s AND activo=1", (mes_sel,))
     df_mov  = get_df("SELECT * FROM movimientos WHERE fecha LIKE %s", (f"{mes_sel}%",))
@@ -99,9 +122,9 @@ if pagina == "📊 Resumen":
         col2.metric("Gastos",   fmt(gastos_personal))
 
 # ═══════════════════════════════════════════════════════════════════════════════
-elif pagina == "📈 Comparación":
+elif pagina == "Comparación":
 # ═══════════════════════════════════════════════════════════════════════════════
-    st.title("📈 Comparación por mes")
+    st.title("Comparación por mes")
 
     df_todo = get_df("SELECT mes, nombre, monto_total FROM gastos_casa WHERE activo=1 ORDER BY mes")
 
@@ -162,10 +185,10 @@ elif pagina == "📈 Comparación":
         st.dataframe(tabla, hide_index=True, use_container_width=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-elif pagina == "🏠 Gastos Casa":
+elif pagina == "Casa Madrigal":
 # ═══════════════════════════════════════════════════════════════════════════════
-    st.title("🏠 Gastos CASITA MADRIGAL")
-    st.subheader(f"Mes: {mes_sel}")
+    st.title("Casa Madrigal")
+    st.subheader(fmt_mes(mes_sel))
 
     df = get_df("SELECT * FROM gastos_casa WHERE mes=%s AND activo=1 ORDER BY tipo, id", (mes_sel,))
 
@@ -176,7 +199,7 @@ elif pagina == "🏠 Gastos Casa":
             sub = df[df["tipo"] == tipo].copy()
             if sub.empty:
                 continue
-            titulo = {"fijo": "📌 Gastos Fijos", "variable": "📊 Gastos Variables", "ahorro": "💾 Ahorros"}
+            titulo = {"fijo": "Gastos Fijos", "variable": "Gastos Variables", "ahorro": "Ahorros"}
             st.subheader(titulo[tipo])
 
             disp = sub[["nombre","monto_total","aporte_julio","aporte_paula"]].copy()
@@ -219,7 +242,7 @@ elif pagina == "🏠 Gastos Casa":
     st.divider()
 
     # ── DISTRIBUIR APORTES ────────────────────────────────────────────────────
-    st.subheader("⚖️ Distribuir aportes del mes")
+    st.subheader("Distribuir aportes del mes")
     julio_pct = st.slider("% Julio", min_value=0, max_value=100, value=50, step=1)
     paula_pct = 100 - julio_pct
     col_a, col_b = st.columns(2)
@@ -235,7 +258,7 @@ elif pagina == "🏠 Gastos Casa":
         st.rerun()
 
     st.divider()
-    st.subheader("➕ Agregar gasto")
+    st.subheader("Agregar gasto")
     with st.form("nuevo"):
         col1, col2 = st.columns(2)
         nombre  = col1.text_input("Concepto")
@@ -254,7 +277,7 @@ elif pagina == "🏠 Gastos Casa":
             st.rerun()
 
     if not df.empty:
-        st.subheader("🗑 Eliminar gasto")
+        st.subheader("Eliminar gasto")
         a_borrar = st.selectbox("Selecciona", df["nombre"].tolist())
         if st.button("Eliminar"):
             database.ejecutar("UPDATE gastos_casa SET activo=0 WHERE mes=%s AND nombre=%s", (mes_sel, a_borrar))
@@ -262,9 +285,9 @@ elif pagina == "🏠 Gastos Casa":
             st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-elif pagina == "➕ Agregar":
+elif pagina == "Registrar":
 # ═══════════════════════════════════════════════════════════════════════════════
-    st.title("➕ Registrar movimiento")
+    st.title("Registrar movimiento")
     st.info("También puedes escribirle al bot en Telegram.")
 
     with st.form("mov"):

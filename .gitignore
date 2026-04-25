@@ -3,5 +3,5 @@ finanzas.db
 venv/
 __pycache__/
 *.pyc
-.streamlit/
+.streamlit/secrets.toml
 log.txt
