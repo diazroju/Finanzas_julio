@@ -94,9 +94,11 @@ if pagina == "Resumen":
         labels=["Julio", "Paula"],
         values=[julio_casa, paula_casa],
         hole=0.5,
-        marker_colors=["#3498db", "#e91e8c"]
+        marker_colors=["#1e3a5f", "#94a3b8"],
+        textfont=dict(color="white")
     ))
-    fig.update_layout(title="Distribución de aportes", height=280, margin=dict(t=40,b=0,l=0,r=0))
+    fig.update_layout(title="Distribución de aportes", height=280, margin=dict(t=40,b=0,l=0,r=0),
+                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig, use_container_width=True)
 
     if not df_casa.empty:
@@ -107,11 +109,12 @@ if pagina == "Resumen":
         tipo_df["Pct"] = (tipo_df["Total"] / tipo_df["Total"].sum() * 100).round(1)
         tipo_df["Label"] = tipo_df.apply(lambda r: f"${r['Total']:,.0f}<br>{r['Pct']}%".replace(",", "."), axis=1)
         fig2 = px.bar(tipo_df, x="Tipo", y="Total", color="Tipo",
-                      color_discrete_sequence=["#3498db","#2ecc71","#e74c3c"],
+                      color_discrete_sequence=["#1e3a5f", "#475569", "#94a3b8"],
                       text="Label")
-        fig2.update_traces(textposition="outside")
+        fig2.update_traces(textposition="outside", textfont=dict(color="#1e293b"))
         fig2.update_layout(showlegend=False, margin=dict(t=40, b=0),
-                           yaxis=dict(range=[0, tipo_df["Total"].max() * 1.2]))
+                           paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                           yaxis=dict(range=[0, tipo_df["Total"].max() * 1.25], showgrid=True, gridcolor="#f1f5f9"))
         st.plotly_chart(fig2, use_container_width=True)
 
     if not df_mov.empty:
@@ -140,10 +143,12 @@ elif pagina == "Comparación":
 
     st.subheader("Total gastos por mes")
     fig1 = px.bar(total_mes, x="Mes", y="Total", color="Color",
-                  color_discrete_map={"Subió": "#e74c3c", "Bajó": "#2ecc71", "Igual": "#95a5a6"},
+                  color_discrete_map={"Subió": "#64748b", "Bajó": "#1e3a5f", "Igual": "#cbd5e1"},
                   text_auto=False)
-    fig1.update_traces(texttemplate="$%{y:,.0f}", textposition="outside")
-    fig1.update_layout(showlegend=True, margin=dict(t=20, b=0))
+    fig1.update_traces(texttemplate="$%{y:,.0f}", textposition="outside", textfont=dict(color="#1e293b"))
+    fig1.update_layout(showlegend=True, margin=dict(t=20, b=0),
+                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                       yaxis=dict(showgrid=True, gridcolor="#f1f5f9"))
     st.plotly_chart(fig1, use_container_width=True)
 
     # Tabla de variación
@@ -174,8 +179,10 @@ elif pagina == "Comparación":
 
         fig2 = px.bar(comp.melt(id_vars="Concepto", value_vars=[m1, m2], var_name="Mes", value_name="Monto"),
                       x="Concepto", y="Monto", color="Mes", barmode="group",
-                      color_discrete_sequence=["#95a5a6", "#3498db"])
-        fig2.update_layout(margin=dict(t=20, b=0), xaxis_tickangle=-45)
+                      color_discrete_sequence=["#94a3b8", "#1e3a5f"])
+        fig2.update_layout(margin=dict(t=20, b=0), xaxis_tickangle=-45,
+                           paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                           yaxis=dict(showgrid=True, gridcolor="#f1f5f9"))
         st.plotly_chart(fig2, use_container_width=True)
 
         st.subheader("Detalle de cambios")
