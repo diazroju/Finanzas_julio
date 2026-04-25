@@ -171,11 +171,17 @@ elif pagina == "🏠 Gastos Casa":
             st.dataframe(disp, hide_index=True, use_container_width=True)
 
             with st.expander("✏️ Editar valores"):
+                col_cfg_ed = {
+                    "Total": st.column_config.NumberColumn("Total ($)", format="$ %d"),
+                    "Julio": st.column_config.NumberColumn("Julio ($)", format="$ %d"),
+                    "Paula": st.column_config.NumberColumn("Paula ($)", format="$ %d"),
+                }
                 edited = st.data_editor(
                     sub[["id","nombre","monto_total","aporte_julio","aporte_paula"]].rename(columns={
                         "nombre":"Concepto","monto_total":"Total","aporte_julio":"Julio","aporte_paula":"Paula"
                     }),
                     hide_index=True, use_container_width=True, disabled=["id"],
+                    column_config=col_cfg_ed,
                     key=f"ed_{tipo}_{mes_sel}"
                 )
                 if st.button(f"💾 Guardar {tipo}s", key=f"sv_{tipo}"):
