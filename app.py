@@ -65,10 +65,14 @@ if pagina == "📊 Resumen":
         tipo_df = df_casa.groupby("tipo")["monto_total"].sum().reset_index()
         tipo_df.columns = ["Tipo", "Total"]
         tipo_df["Tipo"] = tipo_df["Tipo"].str.capitalize()
+        tipo_df["Pct"] = (tipo_df["Total"] / tipo_df["Total"].sum() * 100).round(1)
+        tipo_df["Label"] = tipo_df.apply(lambda r: f"${r['Total']:,.0f}<br>{r['Pct']}%".replace(",", "."), axis=1)
         fig2 = px.bar(tipo_df, x="Tipo", y="Total", color="Tipo",
-                      color_discrete_sequence=["#3498db","#2ecc71","#e74c3c"])
-        fig2.update_traces(texttemplate="$%{y:,.0f}", textposition="outside")
-        fig2.update_layout(showlegend=False, margin=dict(t=20,b=0))
+                      color_discrete_sequence=["#3498db","#2ecc71","#e74c3c"],
+                      text="Label")
+        fig2.update_traces(textposition="outside")
+        fig2.update_layout(showlegend=False, margin=dict(t=40, b=0),
+                           yaxis=dict(range=[0, tipo_df["Total"].max() * 1.2]))
         st.plotly_chart(fig2, use_container_width=True)
 
     if not df_mov.empty:
