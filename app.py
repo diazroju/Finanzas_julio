@@ -12,6 +12,12 @@ def fmt(n):
         return "$0"
     return f"${float(n):,.0f}".replace(",", ".")
 
+def parse_monto(s):
+    try:
+        return int(str(s).replace("$","").replace(".","").replace(",","").strip())
+    except Exception:
+        return 0
+
 def get_df(sql, params=()):
     rows, cols = database.consultar(sql, params)
     return pd.DataFrame(rows, columns=cols)
@@ -181,24 +187,21 @@ elif pagina == "🏠 Gastos Casa":
             st.dataframe(disp, hide_index=True, use_container_width=True)
 
             with st.expander("✏️ Editar valores"):
-                col_cfg_ed = {
-                    "Total": st.column_config.NumberColumn("Total ($)", format="$ %d"),
-                    "Julio": st.column_config.NumberColumn("Julio ($)", format="$ %d"),
-                    "Paula": st.column_config.NumberColumn("Paula ($)", format="$ %d"),
-                }
+                edit_df = sub[["id","nombre","monto_total","aporte_julio","aporte_paula"]].copy()
+                edit_df["monto_total"]  = edit_df["monto_total"].apply(fmt)
+                edit_df["aporte_julio"] = edit_df["aporte_julio"].apply(fmt)
+                edit_df["aporte_paula"] = edit_df["aporte_paula"].apply(fmt)
+                edit_df = edit_df.rename(columns={"nombre":"Concepto","monto_total":"Total","aporte_julio":"Julio","aporte_paula":"Paula"})
                 edited = st.data_editor(
-                    sub[["id","nombre","monto_total","aporte_julio","aporte_paula"]].rename(columns={
-                        "nombre":"Concepto","monto_total":"Total","aporte_julio":"Julio","aporte_paula":"Paula"
-                    }),
+                    edit_df,
                     hide_index=True, use_container_width=True, disabled=["id"],
-                    column_config=col_cfg_ed,
                     key=f"ed_{tipo}_{mes_sel}"
                 )
                 if st.button(f"💾 Guardar {tipo}s", key=f"sv_{tipo}"):
                     for _, r in edited.iterrows():
                         database.ejecutar(
                             "UPDATE gastos_casa SET nombre=%s, monto_total=%s, aporte_julio=%s, aporte_paula=%s WHERE id=%s",
-                            (r["Concepto"], r["Total"], r["Julio"], r["Paula"], r["id"])
+                            (r["Concepto"], parse_monto(r["Total"]), parse_monto(r["Julio"]), parse_monto(r["Paula"]), r["id"])
                         )
                     st.success("Guardado.")
                     st.rerun()
@@ -237,9 +240,11 @@ elif pagina == "🏠 Gastos Casa":
         col1, col2 = st.columns(2)
         nombre  = col1.text_input("Concepto")
         tipo_g  = col2.selectbox("Tipo", ["fijo","variable","ahorro"])
-        total_g = st.number_input("Monto total ($)", min_value=0, step=10000)
+        total_g_str = st.text_input("Monto total ($)", placeholder="Ej: $1.200.000")
         if st.form_submit_button("Agregar") and nombre:
+            total_g = parse_monto(total_g_str)
             j_g = round(total_g * julio_pct / 100)
+            p_g = total_g - j_g
             p_g = total_g - j_g
             database.ejecutar(
                 "INSERT INTO gastos_casa (mes,nombre,tipo,monto_total,aporte_julio,aporte_paula) VALUES (%s,%s,%s,%s,%s,%s)",
