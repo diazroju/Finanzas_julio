@@ -321,45 +321,82 @@ elif pagina == "Ingresos":
     st.title("Ingresos del mes")
     st.subheader(fmt_mes(mes_sel))
 
-    df_ing = get_df("SELECT * FROM movimientos WHERE fecha LIKE %s AND tipo='ingreso' ORDER BY fecha DESC", (f"{mes_sel}%",))
+    # Salarios del mes
+    rows_j, _ = database.consultar("SELECT id, monto FROM movimientos WHERE fecha LIKE %s AND tipo='ingreso' AND categoria='salario_julio'", (f"{mes_sel}%",))
+    rows_p, _ = database.consultar("SELECT id, monto FROM movimientos WHERE fecha LIKE %s AND tipo='ingreso' AND categoria='salario_paula'", (f"{mes_sel}%",))
+    sal_julio = rows_j[0][1] if rows_j else 0
+    sal_paula = rows_p[0][1] if rows_p else 0
 
-    total_ing = df_ing["monto"].sum() if not df_ing.empty else 0
-    st.metric("Total ingresos", fmt(total_ing))
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Salario Julio", fmt(sal_julio))
+    col2.metric("Salario Paula", fmt(sal_paula))
+    col3.metric("Total", fmt(sal_julio + sal_paula))
 
-    if not df_ing.empty:
-        disp_ing = df_ing[["fecha","categoria","monto","nota"]].copy()
-        disp_ing["monto"] = disp_ing["monto"].apply(fmt)
-        disp_ing.columns = ["Fecha","Categoría","Monto","Nota"]
-        st.dataframe(disp_ing, hide_index=True, use_container_width=True)
-
-        st.divider()
-        st.subheader("Eliminar ingreso")
-        opciones = df_ing.apply(lambda r: f"{r['fecha']} — {r['categoria']} — {fmt(r['monto'])}", axis=1).tolist()
-        sel = st.selectbox("Selecciona", opciones)
-        if st.button("Eliminar ingreso"):
-            idx = opciones.index(sel)
-            rid = int(df_ing.iloc[idx]["id"])
-            database.ejecutar("DELETE FROM movimientos WHERE id=%s", (rid,))
-            st.success("Eliminado.")
+    # Sugerencia de división
+    if sal_julio > 0 and sal_paula > 0:
+        total_sal = sal_julio + sal_paula
+        pct_j = round(sal_julio / total_sal * 100)
+        pct_p = 100 - pct_j
+        st.info(f"Según los salarios: **Julio {pct_j}% / Paula {pct_p}%**")
+        if st.button(f"Aplicar {pct_j}/{pct_p} a gastos de {fmt_mes(mes_sel)}"):
+            rows_g, _ = database.consultar("SELECT id, monto_total FROM gastos_casa WHERE mes=%s AND activo=1", (mes_sel,))
+            for rid, monto_t in rows_g:
+                j = round(monto_t * pct_j / 100)
+                p = monto_t - j
+                database.ejecutar("UPDATE gastos_casa SET aporte_julio=%s, aporte_paula=%s WHERE id=%s", (j, p, rid))
+            st.success(f"División {pct_j}/{pct_p} aplicada a todos los gastos de {fmt_mes(mes_sel)}.")
             st.rerun()
 
     st.divider()
-    st.subheader("Registrar ingreso")
-    with st.form("ing"):
-        col1, col2 = st.columns(2)
-        cat_i  = col1.selectbox("Fuente", ["salario","freelance","arriendo","inversiones","bono","otros"])
-        nota_i = col2.text_input("Nota")
-        monto_i_str = st.text_input("Monto ($)", placeholder="Ej: $5.000.000")
-        fecha_i = st.date_input("Fecha", value=date.today())
-        if st.form_submit_button("Registrar") and monto_i_str:
-            monto_i = parse_monto(monto_i_str)
-            if monto_i > 0:
-                database.ejecutar(
-                    "INSERT INTO movimientos (fecha,tipo,monto,categoria,nota) VALUES (%s,%s,%s,%s,%s)",
-                    (fecha_i.isoformat(), "ingreso", monto_i, cat_i, nota_i)
-                )
-                st.success(f"Ingreso de {fmt(monto_i)} registrado.")
-                st.rerun()
+    st.subheader("Registrar salarios")
+    with st.form("salarios"):
+        col_a, col_b = st.columns(2)
+        sal_j_str = col_a.text_input("Salario Julio ($)", placeholder="Ej: $5.000.000",
+                                      value=fmt(sal_julio) if sal_julio else "")
+        sal_p_str = col_b.text_input("Salario Paula ($)", placeholder="Ej: $3.500.000",
+                                      value=fmt(sal_paula) if sal_paula else "")
+        fecha_s = st.date_input("Fecha", value=date.today())
+        if st.form_submit_button("Guardar salarios"):
+            mj = parse_monto(sal_j_str)
+            mp = parse_monto(sal_p_str)
+            if mj > 0:
+                if rows_j:
+                    database.ejecutar("UPDATE movimientos SET monto=%s WHERE id=%s", (mj, rows_j[0][0]))
+                else:
+                    database.ejecutar("INSERT INTO movimientos (fecha,tipo,monto,categoria,nota) VALUES (%s,%s,%s,%s,%s)",
+                                      (fecha_s.isoformat(), "ingreso", mj, "salario_julio", "Salario Julio"))
+            if mp > 0:
+                if rows_p:
+                    database.ejecutar("UPDATE movimientos SET monto=%s WHERE id=%s", (mp, rows_p[0][0]))
+                else:
+                    database.ejecutar("INSERT INTO movimientos (fecha,tipo,monto,categoria,nota) VALUES (%s,%s,%s,%s,%s)",
+                                      (fecha_s.isoformat(), "ingreso", mp, "salario_paula", "Salario Paula"))
+            st.success("Salarios guardados.")
+            st.rerun()
+
+    # Otros ingresos
+    df_otros = get_df("SELECT * FROM movimientos WHERE fecha LIKE %s AND tipo='ingreso' AND categoria NOT IN ('salario_julio','salario_paula') ORDER BY fecha DESC", (f"{mes_sel}%",))
+    if not df_otros.empty or True:
+        st.divider()
+        st.subheader("Otros ingresos")
+        if not df_otros.empty:
+            disp_o = df_otros[["fecha","categoria","monto","nota"]].copy()
+            disp_o["monto"] = disp_o["monto"].apply(fmt)
+            disp_o.columns = ["Fecha","Fuente","Monto","Nota"]
+            st.dataframe(disp_o, hide_index=True, use_container_width=True)
+        with st.form("otros_ing"):
+            col1, col2 = st.columns(2)
+            cat_o   = col1.selectbox("Fuente", ["freelance","arriendo","inversiones","bono","otros"])
+            nota_o  = col2.text_input("Nota")
+            monto_o = st.text_input("Monto ($)", placeholder="Ej: $500.000")
+            fecha_o = st.date_input("Fecha ", value=date.today())
+            if st.form_submit_button("Agregar") and monto_o:
+                mo = parse_monto(monto_o)
+                if mo > 0:
+                    database.ejecutar("INSERT INTO movimientos (fecha,tipo,monto,categoria,nota) VALUES (%s,%s,%s,%s,%s)",
+                                      (fecha_o.isoformat(), "ingreso", mo, cat_o, nota_o))
+                    st.success(f"{fmt(mo)} agregado.")
+                    st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 elif pagina == "Registrar":
