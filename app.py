@@ -264,7 +264,7 @@ elif pagina == "Casa Madrigal":
                 p = monto_t - j
                 database.ejecutar("UPDATE gastos_casa SET aporte_julio=%s, aporte_paula=%s WHERE id=%s", (j, p, rid))
             st.success(f"Aportes actualizados: Julio {julio_pct}% / Paula {paula_pct}%")
-        st.rerun()
+            st.rerun()
 
     st.divider()
     st.subheader("Agregar gasto")
