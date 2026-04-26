@@ -355,7 +355,7 @@ elif pagina == "Ingresos":
                                       value=fmt(sal_julio) if sal_julio else "")
         sal_p_str = col_b.text_input("Salario Paula ($)", placeholder="Ej: $3.500.000",
                                       value=fmt(sal_paula) if sal_paula else "")
-        fecha_s = st.date_input("Fecha", value=date.today())
+        fecha_sal = f"{mes_sel}-01"
         if st.form_submit_button("Guardar salarios"):
             mj = parse_monto(sal_j_str)
             mp = parse_monto(sal_p_str)
@@ -364,13 +364,13 @@ elif pagina == "Ingresos":
                     database.ejecutar("UPDATE movimientos SET monto=%s WHERE id=%s", (mj, rows_j[0][0]))
                 else:
                     database.ejecutar("INSERT INTO movimientos (fecha,tipo,monto,categoria,nota) VALUES (%s,%s,%s,%s,%s)",
-                                      (fecha_s.isoformat(), "ingreso", mj, "salario_julio", "Salario Julio"))
+                                      (fecha_sal, "ingreso", mj, "salario_julio", "Salario Julio"))
             if mp > 0:
                 if rows_p:
                     database.ejecutar("UPDATE movimientos SET monto=%s WHERE id=%s", (mp, rows_p[0][0]))
                 else:
                     database.ejecutar("INSERT INTO movimientos (fecha,tipo,monto,categoria,nota) VALUES (%s,%s,%s,%s,%s)",
-                                      (fecha_s.isoformat(), "ingreso", mp, "salario_paula", "Salario Paula"))
+                                      (fecha_sal, "ingreso", mp, "salario_paula", "Salario Paula"))
             st.success("Salarios guardados.")
             st.rerun()
 
