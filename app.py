@@ -117,12 +117,6 @@ if pagina == "Resumen":
                            yaxis=dict(range=[0, tipo_df["Total"].max() * 1.25], showgrid=True, gridcolor="#f1f5f9"))
         st.plotly_chart(fig2, use_container_width=True)
 
-    if not df_mov.empty:
-        st.subheader("Mis gastos personales")
-        ingresos = df_mov[df_mov["tipo"]=="ingreso"]["monto"].sum()
-        col1, col2 = st.columns(2)
-        col1.metric("Ingresos", fmt(ingresos))
-        col2.metric("Gastos",   fmt(gastos_personal))
 
 # ═══════════════════════════════════════════════════════════════════════════════
 elif pagina == "Comparación":
