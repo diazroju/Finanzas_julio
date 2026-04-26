@@ -250,18 +250,20 @@ elif pagina == "Casa Madrigal":
 
     # ── DISTRIBUIR APORTES ────────────────────────────────────────────────────
     st.subheader("Distribuir aportes del mes")
-    julio_pct = st.slider("% Julio", min_value=0, max_value=100, value=50, step=1)
-    paula_pct = 100 - julio_pct
     col_a, col_b = st.columns(2)
-    col_a.metric("Julio", f"{julio_pct}%")
-    col_b.metric("Paula", f"{paula_pct}%")
-    if st.button("Aplicar porcentaje a todos los gastos del mes"):
-        rows, _ = database.consultar("SELECT id, monto_total FROM gastos_casa WHERE mes=%s AND activo=1", (mes_sel,))
-        for rid, monto_t in rows:
-            j = round(monto_t * julio_pct / 100)
-            p = monto_t - j
-            database.ejecutar("UPDATE gastos_casa SET aporte_julio=%s, aporte_paula=%s WHERE id=%s", (j, p, rid))
-        st.success(f"Aportes actualizados: Julio {julio_pct}% / Paula {paula_pct}%")
+    julio_pct = col_a.number_input("% Julio", min_value=0, max_value=100, value=50, step=1)
+    paula_pct = col_b.number_input("% Paula", min_value=0, max_value=100, value=50, step=1)
+    suma = julio_pct + paula_pct
+    if suma != 100:
+        st.warning(f"Los porcentajes suman {suma}% — deben sumar 100%.")
+    else:
+        if st.button("Aplicar a todos los gastos del mes"):
+            rows, _ = database.consultar("SELECT id, monto_total FROM gastos_casa WHERE mes=%s AND activo=1", (mes_sel,))
+            for rid, monto_t in rows:
+                j = round(monto_t * julio_pct / 100)
+                p = monto_t - j
+                database.ejecutar("UPDATE gastos_casa SET aporte_julio=%s, aporte_paula=%s WHERE id=%s", (j, p, rid))
+            st.success(f"Aportes actualizados: Julio {julio_pct}% / Paula {paula_pct}%")
         st.rerun()
 
     st.divider()
