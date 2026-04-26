@@ -63,7 +63,7 @@ def meses():
 st.sidebar.title("💎 Finanzas Julio")
 mes_lista = meses()
 mes_sel   = st.sidebar.selectbox("Mes", mes_lista, format_func=fmt_mes)
-pagina    = st.sidebar.radio("Vista", ["Resumen", "Comparación", "Casa Madrigal", "Registrar"])
+pagina    = st.sidebar.radio("Vista", ["Resumen", "Ingresos", "Comparación", "Casa Madrigal", "Registrar"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
 if pagina == "Resumen":
@@ -292,6 +292,74 @@ elif pagina == "Casa Madrigal":
             database.ejecutar("UPDATE gastos_casa SET activo=0 WHERE mes=%s AND nombre=%s", (mes_sel, a_borrar))
             st.success(f"'{a_borrar}' eliminado.")
             st.rerun()
+
+    st.divider()
+    st.subheader("Duplicar mes")
+    # calcular mes siguiente
+    anio, mm = int(mes_sel[:4]), int(mes_sel[5:])
+    mm2, anio2 = (mm % 12) + 1, anio + (1 if mm == 12 else 0)
+    mes_sig = f"{anio2}-{mm2:02d}"
+    rows_sig, _ = database.consultar("SELECT COUNT(*) FROM gastos_casa WHERE mes=%s AND activo=1", (mes_sig,))
+    ya_existe = rows_sig[0][0] > 0
+    if ya_existe:
+        st.info(f"{fmt_mes(mes_sig)} ya tiene {rows_sig[0][0]} gastos cargados.")
+    if st.button(f"Copiar gastos de {fmt_mes(mes_sel)} → {fmt_mes(mes_sig)}", disabled=(not df.empty and ya_existe and False)):
+        if ya_existe:
+            st.warning(f"{fmt_mes(mes_sig)} ya tiene datos. Bórralos primero si quieres reemplazarlos.")
+        else:
+            for _, r in df.iterrows():
+                database.ejecutar(
+                    "INSERT INTO gastos_casa (mes,nombre,tipo,monto_total,aporte_julio,aporte_paula) VALUES (%s,%s,%s,%s,%s,%s)",
+                    (mes_sig, r["nombre"], r["tipo"], r["monto_total"], r["aporte_julio"], r["aporte_paula"])
+                )
+            st.success(f"Gastos copiados a {fmt_mes(mes_sig)}. Selecciónalo en el menú para editarlo.")
+            st.rerun()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+elif pagina == "Ingresos":
+# ═══════════════════════════════════════════════════════════════════════════════
+    st.title("Ingresos del mes")
+    st.subheader(fmt_mes(mes_sel))
+
+    df_ing = get_df("SELECT * FROM movimientos WHERE fecha LIKE %s AND tipo='ingreso' ORDER BY fecha DESC", (f"{mes_sel}%",))
+
+    total_ing = df_ing["monto"].sum() if not df_ing.empty else 0
+    st.metric("Total ingresos", fmt(total_ing))
+
+    if not df_ing.empty:
+        disp_ing = df_ing[["fecha","categoria","monto","nota"]].copy()
+        disp_ing["monto"] = disp_ing["monto"].apply(fmt)
+        disp_ing.columns = ["Fecha","Categoría","Monto","Nota"]
+        st.dataframe(disp_ing, hide_index=True, use_container_width=True)
+
+        st.divider()
+        st.subheader("Eliminar ingreso")
+        opciones = df_ing.apply(lambda r: f"{r['fecha']} — {r['categoria']} — {fmt(r['monto'])}", axis=1).tolist()
+        sel = st.selectbox("Selecciona", opciones)
+        if st.button("Eliminar ingreso"):
+            idx = opciones.index(sel)
+            rid = int(df_ing.iloc[idx]["id"])
+            database.ejecutar("DELETE FROM movimientos WHERE id=%s", (rid,))
+            st.success("Eliminado.")
+            st.rerun()
+
+    st.divider()
+    st.subheader("Registrar ingreso")
+    with st.form("ing"):
+        col1, col2 = st.columns(2)
+        cat_i  = col1.selectbox("Fuente", ["salario","freelance","arriendo","inversiones","bono","otros"])
+        nota_i = col2.text_input("Nota")
+        monto_i_str = st.text_input("Monto ($)", placeholder="Ej: $5.000.000")
+        fecha_i = st.date_input("Fecha", value=date.today())
+        if st.form_submit_button("Registrar") and monto_i_str:
+            monto_i = parse_monto(monto_i_str)
+            if monto_i > 0:
+                database.ejecutar(
+                    "INSERT INTO movimientos (fecha,tipo,monto,categoria,nota) VALUES (%s,%s,%s,%s,%s)",
+                    (fecha_i.isoformat(), "ingreso", monto_i, cat_i, nota_i)
+                )
+                st.success(f"Ingreso de {fmt(monto_i)} registrado.")
+                st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 elif pagina == "Registrar":
